@@ -2,27 +2,49 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Users, Phone, Building2,
   Sparkles, UtensilsCrossed, PlusCircle, MessageCircle,
-  CheckSquare, Mountain, AlertTriangle, Star, PartyPopper,
+  CheckSquare, Mountain, AlertTriangle, Star, PartyPopper, LogOut, User, UserCog,
 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
-  { to: '/bookings/new', label: 'New Booking', icon: PlusCircle },
-  { to: '/leads', label: 'Guest Leads', icon: Users },
-  { to: '/chat', label: 'Chat', icon: MessageCircle },
-  { to: '/calls', label: 'Call Logs', icon: Phone },
-  { to: '/rooms', label: 'Rooms', icon: Building2 },
-  { to: '/spa', label: 'Spa', icon: Sparkles },
-  { to: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
-  { to: '/activities', label: 'Activities', icon: Mountain },
-  { to: '/housekeeping', label: 'Housekeeping', icon: CheckSquare },
-  { to: '/complaints', label: 'Complaints', icon: AlertTriangle },
-  { to: '/loyalty', label: 'Loyalty', icon: Star },
-  { to: '/events', label: 'Events', icon: PartyPopper },
-]
+const roleNavItems = {
+  admin: [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/users', label: 'Users', icon: UserCog },
+    { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
+    { to: '/bookings/new', label: 'New Booking', icon: PlusCircle },
+    { to: '/leads', label: 'Guest Leads', icon: Users },
+    { to: '/chat', label: 'Chat', icon: MessageCircle },
+    { to: '/calls', label: 'Call Logs', icon: Phone },
+    { to: '/rooms', label: 'Rooms', icon: Building2 },
+    { to: '/spa', label: 'Spa', icon: Sparkles },
+    { to: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
+    { to: '/activities', label: 'Activities', icon: Mountain },
+    { to: '/housekeeping', label: 'Housekeeping', icon: CheckSquare },
+    { to: '/complaints', label: 'Complaints', icon: AlertTriangle },
+    { to: '/loyalty', label: 'Loyalty', icon: Star },
+    { to: '/events', label: 'Events', icon: PartyPopper },
+  ],
+  staff: [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
+    { to: '/bookings/new', label: 'New Booking', icon: PlusCircle },
+    { to: '/leads', label: 'Guest Leads', icon: Users },
+    { to: '/chat', label: 'Chat', icon: MessageCircle },
+    { to: '/rooms', label: 'Rooms', icon: Building2 },
+    { to: '/spa', label: 'Spa', icon: Sparkles },
+    { to: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
+    { to: '/activities', label: 'Activities', icon: Mountain },
+  ],
+  customer: [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/bookings', label: 'My Bookings', icon: CalendarCheck },
+  ],
+}
 
 export default function Sidebar() {
+  const { user, logout } = useAuth()
+  const navItems = roleNavItems[user?.role] || roleNavItems.staff
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
       <div className="p-5 border-b border-gray-100">
@@ -50,9 +72,31 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400">Naaz Resort Voice Agent</p>
-        <p className="text-xs text-gray-400">v2.0.0</p>
+      <div className="p-4 border-t border-gray-100 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <User className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {user?.full_name || user?.username}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {user?.role}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </button>
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-400">Naaz Resort Voice Agent</p>
+          <p className="text-xs text-gray-400">v2.0.0</p>
+        </div>
       </div>
     </aside>
   )

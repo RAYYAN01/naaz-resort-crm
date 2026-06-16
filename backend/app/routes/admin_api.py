@@ -33,6 +33,7 @@ def api_check_availability(
     check_in: Optional[str] = Query(None),
     check_out: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     ci = date.fromisoformat(check_in) if check_in else None
     co = date.fromisoformat(check_out) if check_out else None
@@ -42,12 +43,21 @@ def api_check_availability(
 
 # --- Bookings ---
 @router.get("/bookings")
-def api_get_bookings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def api_get_bookings(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     return get_all_bookings(db, skip, limit)
 
 
 @router.get("/bookings/{booking_id}")
-def api_get_booking(booking_id: int, db: Session = Depends(get_db)):
+def api_get_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     booking = get_booking_by_id(db, booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -82,6 +92,7 @@ def api_create_booking(
     special_requests: str = "",
     status: str = "pending",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     ci = date.fromisoformat(check_in)
     co = date.fromisoformat(check_out)
@@ -109,7 +120,11 @@ def api_create_booking(
 
 
 @router.post("/bookings/{booking_id}/cancel")
-def api_cancel_booking(booking_id: int, db: Session = Depends(get_db)):
+def api_cancel_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     booking = cancel_booking(db, booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -118,7 +133,12 @@ def api_cancel_booking(booking_id: int, db: Session = Depends(get_db)):
 
 # --- Leads ---
 @router.get("/leads")
-def api_get_leads(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def api_get_leads(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     return get_all_leads(db, skip, limit)
 
 
@@ -135,6 +155,7 @@ def api_create_lead(
     notes: str = "",
     source: str = "website",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     from app.services.booking_service import create_guest_lead
 
@@ -160,7 +181,12 @@ def api_create_lead(
 
 # --- Call Logs ---
 @router.get("/call-logs")
-def api_get_call_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def api_get_call_logs(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     return get_all_call_logs(db, skip, limit)
 
 
@@ -175,6 +201,7 @@ def api_book_spa(
     time: str = "10:00",
     notes: str = "",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     dt = date.fromisoformat(date_str) if date_str else date.today()
     reservation = book_spa_session(db, guest_name, phone, email, service, dt, time, notes)
@@ -192,6 +219,7 @@ def api_reserve_restaurant(
     time: str = "19:00",
     special_requests: str = "",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     dt = date.fromisoformat(date_str) if date_str else date.today()
     reservation = reserve_restaurant(db, guest_name, phone, email, guests, dt, time, special_requests)
@@ -200,7 +228,10 @@ def api_reserve_restaurant(
 
 # --- Dashboard ---
 @router.get("/dashboard")
-def api_dashboard(db: Session = Depends(get_db)):
+def api_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     total_bookings = db.query(Booking).count()
     confirmed_bookings = db.query(Booking).filter(Booking.status == "confirmed").count()
     pending_bookings = db.query(Booking).filter(Booking.status == "pending").count()
@@ -249,7 +280,10 @@ def api_dashboard(db: Session = Depends(get_db)):
 
 # --- Housekeeping ---
 @router.get("/housekeeping")
-def api_get_housekeeping(db: Session = Depends(get_db)):
+def api_get_housekeeping(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     tasks = db.query(HousekeepingTask).order_by(HousekeepingTask.created_at.desc()).all()
     return [
         {
@@ -265,9 +299,14 @@ def api_get_housekeeping(db: Session = Depends(get_db)):
 
 @router.post("/housekeeping")
 def api_create_housekeeping(
-    room_number: str, task_type: str, priority: str = "normal",
-    assigned_to: str = "", guest_name: str = "", notes: str = "",
+    room_number: str,
+    task_type: str,
+    priority: str = "normal",
+    assigned_to: str = "",
+    guest_name: str = "",
+    notes: str = "",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     task = HousekeepingTask(
         room_number=room_number, task_type=task_type, priority=priority,
@@ -280,7 +319,12 @@ def api_create_housekeeping(
 
 
 @router.post("/housekeeping/{task_id}/status")
-def api_update_housekeeping_status(task_id: int, status: str, db: Session = Depends(get_db)):
+def api_update_housekeeping_status(
+    task_id: int,
+    status: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     task = db.query(HousekeepingTask).filter(HousekeepingTask.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -293,7 +337,10 @@ def api_update_housekeeping_status(task_id: int, status: str, db: Session = Depe
 
 # --- Activities ---
 @router.get("/activities")
-def api_get_activities(db: Session = Depends(get_db)):
+def api_get_activities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     items = db.query(ActivityBooking).order_by(ActivityBooking.created_at.desc()).all()
     return [
         {
@@ -309,10 +356,17 @@ def api_get_activities(db: Session = Depends(get_db)):
 
 @router.post("/activities")
 def api_create_activity(
-    guest_name: str, phone: str, activity: str, activity_date: str,
-    email: str = "", time: str = "09:00", participants: int = 1,
-    amount: float = 0.0, notes: str = "",
+    guest_name: str,
+    phone: str,
+    activity: str,
+    activity_date: str,
+    email: str = "",
+    time: str = "09:00",
+    participants: int = 1,
+    amount: float = 0.0,
+    notes: str = "",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     activity_prices = {
         "Trekking": 800, "ATV Ride": 1500, "Kayaking": 1200,
@@ -333,7 +387,10 @@ def api_create_activity(
 
 # --- Complaints ---
 @router.get("/complaints")
-def api_get_complaints(db: Session = Depends(get_db)):
+def api_get_complaints(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     items = db.query(Complaint).order_by(Complaint.created_at.desc()).all()
     return [
         {
@@ -350,10 +407,15 @@ def api_get_complaints(db: Session = Depends(get_db)):
 
 @router.post("/complaints")
 def api_create_complaint(
-    guest_name: str, description: str,
-    phone: str = "", room_number: str = "", category: str = "general",
-    priority: str = "normal", assigned_to: str = "",
+    guest_name: str,
+    description: str,
+    phone: str = "",
+    room_number: str = "",
+    category: str = "general",
+    priority: str = "normal",
+    assigned_to: str = "",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     item = Complaint(
         guest_name=guest_name, phone=phone, room_number=room_number,
@@ -367,7 +429,12 @@ def api_create_complaint(
 
 
 @router.post("/complaints/{complaint_id}/resolve")
-def api_resolve_complaint(complaint_id: int, resolution: str = "", db: Session = Depends(get_db)):
+def api_resolve_complaint(
+    complaint_id: int,
+    resolution: str = "",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     item = db.query(Complaint).filter(Complaint.id == complaint_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Complaint not found")
@@ -380,7 +447,10 @@ def api_resolve_complaint(complaint_id: int, resolution: str = "", db: Session =
 
 # --- Loyalty ---
 @router.get("/loyalty")
-def api_get_loyalty(db: Session = Depends(get_db)):
+def api_get_loyalty(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     items = db.query(GuestLoyalty).order_by(GuestLoyalty.points.desc()).all()
     return [
         {
@@ -395,8 +465,12 @@ def api_get_loyalty(db: Session = Depends(get_db)):
 
 @router.post("/loyalty")
 def api_create_loyalty(
-    guest_name: str, phone: str, email: str = "",
-    points: int = 0, db: Session = Depends(get_db),
+    guest_name: str,
+    phone: str,
+    email: str = "",
+    points: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     tier = "platinum" if points >= 5000 else "gold" if points >= 2000 else "silver"
     item = GuestLoyalty(guest_name=guest_name, phone=phone, email=email, points=points, tier=tier)
@@ -408,7 +482,10 @@ def api_create_loyalty(
 
 # --- Events ---
 @router.get("/events")
-def api_get_events(db: Session = Depends(get_db)):
+def api_get_events(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     items = db.query(EventInquiry).order_by(EventInquiry.created_at.desc()).all()
     return [
         {
@@ -425,10 +502,17 @@ def api_get_events(db: Session = Depends(get_db)):
 
 @router.post("/events")
 def api_create_event(
-    guest_name: str, phone: str, event_type: str = "wedding",
-    email: str = "", event_date: Optional[str] = None,
-    guests_count: int = 50, budget: str = "", requirements: str = "", notes: str = "",
+    guest_name: str,
+    phone: str,
+    event_type: str = "wedding",
+    email: str = "",
+    event_date: Optional[str] = None,
+    guests_count: int = 50,
+    budget: str = "",
+    requirements: str = "",
+    notes: str = "",
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     ed = date.fromisoformat(event_date) if event_date else None
     item = EventInquiry(
@@ -443,7 +527,12 @@ def api_create_event(
 
 
 @router.post("/events/{event_id}/status")
-def api_update_event_status(event_id: int, status: str, db: Session = Depends(get_db)):
+def api_update_event_status(
+    event_id: int,
+    status: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     item = db.query(EventInquiry).filter(EventInquiry.id == event_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -454,7 +543,10 @@ def api_update_event_status(event_id: int, status: str, db: Session = Depends(ge
 
 # --- Spa list ---
 @router.get("/spa")
-def api_get_spa(db: Session = Depends(get_db)):
+def api_get_spa(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     items = db.query(SpaReservation).order_by(SpaReservation.created_at.desc()).all()
     return [
         {
@@ -469,7 +561,10 @@ def api_get_spa(db: Session = Depends(get_db)):
 
 # --- Restaurant list ---
 @router.get("/restaurant")
-def api_get_restaurant(db: Session = Depends(get_db)):
+def api_get_restaurant(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     items = db.query(RestaurantReservation).order_by(RestaurantReservation.created_at.desc()).all()
     return [
         {
@@ -484,7 +579,11 @@ def api_get_restaurant(db: Session = Depends(get_db)):
 
 # --- Payment demo ---
 @router.post("/bookings/{booking_id}/pay")
-def api_mark_paid(booking_id: int, db: Session = Depends(get_db)):
+def api_mark_paid(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -498,7 +597,11 @@ def api_mark_paid(booking_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/bookings/{booking_id}/confirm")
-def api_confirm_booking(booking_id: int, db: Session = Depends(get_db)):
+def api_confirm_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
